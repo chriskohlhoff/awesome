@@ -21,7 +21,8 @@ server::server(
   : io_service_(),
     resolver_(io_service_),
     acceptor_(io_service_, resolve_endpoint(listen_address, listen_port)),
-    up_endpoint_(resolve_endpoint(target_address, target_port))
+    up_endpoint_(resolve_endpoint(target_address, target_port)),
+    down_socket_(io_service_)
 {
 }
 
@@ -40,9 +41,7 @@ tcp::endpoint server::resolve_endpoint(
 
 void server::start_accept()
 {
-  new_connection_ = std::make_shared<connection>(io_service_);
-
-  acceptor_.async_accept(new_connection_->down_socket(),
+  acceptor_.async_accept(down_socket_,
       std::bind(&server::handle_accept, this, _1));
 }
 
@@ -50,7 +49,7 @@ void server::handle_accept(const boost::system::error_code& ec)
 {
   if (!ec)
   {
-    new_connection_->start(up_endpoint_);
+    std::make_shared<connection>(std::move(down_socket_))->start(up_endpoint_);
   }
 
   start_accept();

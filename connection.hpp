@@ -29,10 +29,7 @@ public:
   connection& operator=(const connection&) = delete;
 
   // Construct a connection with the given io_service.
-  explicit connection(boost::asio::io_service& io_service);
-
-  // Get the downstream socket associated with the connection.
-  tcp::socket& down_socket();
+  explicit connection(tcp::socket&& down_socket);
 
   // Kick off the asynchronous operations associated with the connection.
   void start(const tcp::endpoint& up_endpoint);

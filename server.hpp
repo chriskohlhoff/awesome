@@ -56,8 +56,8 @@ private:
   // The target endpoint for all forwarded connections.
   tcp::endpoint up_endpoint_;
 
-  // The next connection to be accepted.
-  connection_ptr new_connection_;
+  // The next socket to be accepted.
+  tcp::socket down_socket_;
 };
 
 } // namespace awesome

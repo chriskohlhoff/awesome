@@ -17,15 +17,10 @@ namespace awesome {
 
 using std::placeholders::_1;
 
-connection::connection(boost::asio::io_service& io_service)
-  : down_socket_(io_service),
-    up_socket_(io_service)
+connection::connection(tcp::socket&& down_socket)
+  : down_socket_(std::move(down_socket)),
+    up_socket_(down_socket_.get_io_service())
 {
-}
-
-tcp::socket& connection::down_socket()
-{
-  return down_socket_;
 }
 
 void connection::start(const tcp::endpoint& up_endpoint)
