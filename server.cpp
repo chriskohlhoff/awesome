@@ -9,48 +9,97 @@
 //
 
 #include "server.hpp"
-#include <functional>
+#include <boost/asio/write.hpp>
 
 #include "yield.hpp"
 
 namespace awesome {
 
+using boost::asio::ip::tcp;
+
 server::server(
     const std::string& listen_address, const std::string& listen_port,
     const std::string& target_address, const std::string& target_port)
-  : io_service_(),
-    resolver_(io_service_),
-    acceptor_(io_service_, *resolver_.resolve({listen_address, listen_port})),
-    up_endpoint_(*resolver_.resolve({target_address, target_port})),
-    down_socket_(io_service_)
+  : io_service_(std::make_shared<boost::asio::io_service>()),
+    resolver_(std::make_shared<tcp::resolver>(*io_service_)),
+    acceptor_(std::make_shared<tcp::acceptor>(*io_service_,
+          *resolver_->resolve({listen_address, listen_port}))),
+    up_endpoint_(*resolver_->resolve({target_address, target_port})),
+    allocator_(std::make_shared<allocator>())
 {
 }
 
-void server::run()
+server::server(const server& other)
+  : coroutine(other),
+    io_service_(other.io_service_),
+    resolver_(other.resolver_),
+    acceptor_(other.acceptor_),
+    up_endpoint_(other.up_endpoint_),
+    socket1_(other.socket1_),
+    socket2_(other.socket2_),
+    buffer_(other.buffer_),
+    allocator_(other.allocator_)
 {
-  struct logic
+  std::cout << "COPY" << std::endl;
+}
+
+void server::operator()(boost::system::error_code ec, std::size_t length)
+{
+  reenter (this)
   {
-    coroutine coro;
-    server* this_;
-    void operator()(const boost::system::error_code& ec)
+    fork server(*this)();
+
+    if (is_parent())
     {
-      reenter (coro)
+      io_service_->run();
+      return;
+    }
+
+    do
+    {
+      socket1_ = std::make_shared<tcp::socket>(*io_service_);
+      yield acceptor_->async_accept(*socket1_, std::move(*this));
+      if (!ec) fork server(*this)();
+    } while (is_parent());
+
+    std::cout << "connection::start()" << std::endl;
+
+    allocator_ = std::make_shared<allocator>();
+
+    socket2_ = std::make_shared<tcp::socket>(*io_service_);
+    yield socket2_->async_connect(up_endpoint_, std::move(*this));
+    if (!ec)
+    {
+      fork server(*this)();
+
+      buffer_ = std::make_shared<std::array<unsigned char, 1024>>();
+
+      if (is_child())
       {
-        for (;;)
+        allocator_ = std::make_shared<allocator>();
+        std::swap(socket1_, socket2_);
+      }
+
+      while (!ec)
+      {
+        yield socket1_->async_read_some(
+            boost::asio::buffer(*buffer_), std::move(*this));
+        if (!ec)
         {
-          yield this_->acceptor_.async_accept(this_->down_socket_, *this);
-          if (!ec)
-          {
-            connection(std::move(this_->down_socket_))(
-                boost::system::error_code(), this_->up_endpoint_);
-          }
+          yield boost::asio::async_write(*socket2_,
+              boost::asio::buffer(*buffer_, length), std::move(*this));
         }
       }
     }
-  };
 
-  logic{coroutine(), this}(boost::system::error_code());
-  io_service_.run();
+    if (socket1_->is_open() || socket2_->is_open())
+    {
+      std::cout << "connection::stop()" << std::endl;
+
+      socket1_->close(ec);
+      socket2_->close(ec);
+    }
+  }
 }
 
 } // namespace awesome

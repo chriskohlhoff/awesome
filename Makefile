@@ -33,7 +33,7 @@ LDFLAGS = -std=c++0x
 
 LIBS = $(BOOST_ROOT)/stage/lib/libboost_system.a
 
-CXXFILES = connection.cpp main.cpp new.cpp server.cpp
+CXXFILES = main.cpp new.cpp server.cpp
 
 OBJFILES = $(CXXFILES:.cpp=.o)
 
@@ -54,8 +54,5 @@ depends:
 
 # DO NOT DELETE THIS LINE - make depend depends on it
 
-connection.o: connection.hpp allocator.hpp coroutine.hpp transfer.hpp
-connection.o: yield.hpp unyield.hpp
-main.o: server.hpp connection.hpp allocator.hpp coroutine.hpp
-server.o: server.hpp connection.hpp allocator.hpp coroutine.hpp yield.hpp
-server.o: unyield.hpp
+main.o: server.hpp allocator.hpp coroutine.hpp
+server.o: server.hpp allocator.hpp coroutine.hpp yield.hpp unyield.hpp

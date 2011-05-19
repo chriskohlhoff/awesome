@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
     awesome::server s(argv[1], argv[2], argv[3], argv[4]);
 
     // Run the server.
-    s.run();
+    s();
   }
   catch (std::exception& e)
   {
