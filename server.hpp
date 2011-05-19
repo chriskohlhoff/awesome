@@ -34,10 +34,6 @@ public:
   void run();
 
 private:
-  // Get the endpoint corresponding to the address and port.
-  tcp::endpoint resolve_endpoint(
-      const std::string& address, const std::string& port);
-
   // Initiate an asynchronous accept operation.
   void start_accept();
 

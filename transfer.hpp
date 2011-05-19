@@ -77,9 +77,9 @@ template <class Stream1, class Stream2, class Handler>
 void async_transfer(Stream1& stream1, Stream2& stream2,
     boost::asio::mutable_buffers_1 working_buffer, Handler handler)
 {
-  transfer_op<Stream1, Stream2, Handler> op = {
-    true, stream1, stream2, working_buffer, handler };
-  op(boost::system::error_code(), 0);
+  transfer_op<Stream1, Stream2, Handler>{
+    true, stream1, stream2, working_buffer, handler }(
+      boost::system::error_code(), 0);
 }
 
 } // namespace awesome

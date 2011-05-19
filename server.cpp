@@ -20,8 +20,8 @@ server::server(
     const std::string& target_address, const std::string& target_port)
   : io_service_(),
     resolver_(io_service_),
-    acceptor_(io_service_, resolve_endpoint(listen_address, listen_port)),
-    up_endpoint_(resolve_endpoint(target_address, target_port)),
+    acceptor_(io_service_, *resolver_.resolve({listen_address, listen_port})),
+    up_endpoint_(*resolver_.resolve({target_address, target_port})),
     down_socket_(io_service_)
 {
 }
@@ -30,13 +30,6 @@ void server::run()
 {
   start_accept();
   io_service_.run();
-}
-
-tcp::endpoint server::resolve_endpoint(
-    const std::string& address, const std::string& port)
-{
-  tcp::resolver::query query(address, port);
-  return *resolver_.resolve(query);
 }
 
 void server::start_accept()
