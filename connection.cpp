@@ -22,6 +22,16 @@ connection::connection(tcp::socket&& down_socket)
 {
 }
 
+connection::connection(const connection& other)
+  : coroutine(other),
+    down_socket_(other.down_socket_),
+    up_socket_(other.up_socket_),
+    buffer_(other.buffer_),
+    allocator_(other.allocator_)
+{
+  std::cout << "COPY" << std::endl;
+}
+
 void connection::operator()(boost::system::error_code ec,
     const tcp::endpoint& up_endpoint)
 {

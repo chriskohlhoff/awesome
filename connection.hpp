@@ -29,6 +29,9 @@ public:
   // Construct a connection with the given io_service.
   explicit connection(tcp::socket&& down_socket);
 
+  // Copy constructor to print when called.
+  connection(const connection& other);
+
   // Run the operations associated with the connection.
   void operator()(boost::system::error_code ec,
       const tcp::endpoint& up_endpoint = tcp::endpoint());
