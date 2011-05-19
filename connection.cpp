@@ -32,6 +32,8 @@ void connection::operator()(boost::system::error_code ec,
     {
       std::cout << "connection::start()" << std::endl;
 
+      allocator_ = std::make_shared<allocator>();
+
       up_socket_ = std::make_shared<tcp::socket>(down_socket_->get_io_service());
       yield up_socket_->async_connect(up_endpoint, *this);
       if (!ec)
@@ -42,6 +44,8 @@ void connection::operator()(boost::system::error_code ec,
 
         if (is_child())
         {
+          allocator_ = std::make_shared<allocator>();
+
           yield async_transfer(*up_socket_, *down_socket_,
               boost::asio::buffer(*buffer_), *this);
         }

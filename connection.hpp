@@ -15,6 +15,7 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <memory>
+#include "allocator.hpp"
 #include "coroutine.hpp"
 
 namespace awesome {
@@ -41,6 +42,21 @@ private:
 
   // Buffer for forwarding data.
   std::shared_ptr<std::array<unsigned char, 1024>> buffer_;
+
+  // Custom memory allocator.
+  std::shared_ptr<allocator> allocator_;
+
+  // Custom allocation hook.
+  friend void* asio_handler_allocate(std::size_t n, connection* c)
+  {
+    return c->allocator_->allocate(n);
+  }
+
+  // Custom deallocation hook.
+  friend void asio_handler_deallocate(void* p, std::size_t, connection* c)
+  {
+    c->allocator_->deallocate(p);
+  }
 };
 
 } // namespace awesome
