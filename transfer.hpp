@@ -34,10 +34,10 @@ struct transfer_op
     {
       while (!ec)
       {
-        yield stream1.async_read_some(working_buffer, *this);
+        yield stream1.async_read_some(working_buffer, std::move(*this));
         if (ec) break;
         yield boost::asio::async_write(stream2,
-            boost::asio::buffer(working_buffer, length), *this);
+            boost::asio::buffer(working_buffer, length), std::move(*this));
       }
 
       handler(ec);
@@ -69,12 +69,28 @@ void asio_handler_invoke(const Function& f,
   return asio_handler_invoke(f, std::addressof(op->handler));
 }
 
+template <class Function, class Stream1, class Stream2, class Handler>
+void asio_handler_invoke(Function& f,
+    transfer_op<Stream1, Stream2, Handler>* op)
+{
+  using boost::asio::asio_handler_invoke;
+  return asio_handler_invoke(f, std::addressof(op->handler));
+}
+
 template <class Stream1, class Stream2, class Handler>
-void async_transfer(Stream1& stream1, Stream2& stream2,
+transfer_op<Stream1, Stream2, Handler> make_transfer_op(
+    Stream1& stream1, Stream2& stream2,
     boost::asio::mutable_buffers_1 working_buffer, Handler handler)
 {
-  transfer_op<Stream1, Stream2, Handler>{
-    coroutine(), stream1, stream2, working_buffer, handler }(
+  return transfer_op<Stream1, Stream2, Handler>{
+    coroutine(), stream1, stream2, working_buffer, std::move(handler) };
+}
+
+template <class Stream1, class Stream2, class Handler>
+void async_transfer(Stream1& stream1, Stream2& stream2,
+    boost::asio::mutable_buffers_1 working_buffer, Handler&& handler)
+{
+  make_transfer_op(stream1, stream2, working_buffer, handler)(
       boost::system::error_code(), 0);
 }
 

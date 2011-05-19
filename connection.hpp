@@ -32,6 +32,9 @@ public:
   // Copy constructor to print when called.
   connection(const connection& other);
 
+  // Use default move constructor.
+  connection(connection&&) = default;
+
   // Run the operations associated with the connection.
   void operator()(boost::system::error_code ec,
       const tcp::endpoint& up_endpoint = tcp::endpoint());
@@ -59,6 +62,21 @@ private:
   friend void asio_handler_deallocate(void* p, std::size_t, connection* c)
   {
     c->allocator_->deallocate(p);
+  }
+
+  // Custom invocation hook.
+  template <class Function>
+  friend void asio_handler_invoke(const Function& f, connection*)
+  {
+    Function tmp;
+    tmp();
+  }
+
+  // Custom invocation hook.
+  template <class Function>
+  friend void asio_handler_invoke(Function& f, connection*)
+  {
+    f();
   }
 };
 
