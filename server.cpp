@@ -9,10 +9,11 @@
 //
 
 #include "server.hpp"
-#include <boost/bind.hpp>
-#include <boost/make_shared.hpp>
+#include <functional>
 
 namespace awesome {
+
+using std::placeholders::_1;
 
 server::server(
     const std::string& listen_address, const std::string& listen_port,
@@ -39,10 +40,10 @@ tcp::endpoint server::resolve_endpoint(
 
 void server::start_accept()
 {
-  new_connection_ = boost::make_shared<connection>(boost::ref(io_service_));
+  new_connection_ = std::make_shared<connection>(io_service_);
 
   acceptor_.async_accept(new_connection_->down_socket(),
-      boost::bind(&server::handle_accept, this, _1));
+      std::bind(&server::handle_accept, this, _1));
 }
 
 void server::handle_accept(const boost::system::error_code& ec)

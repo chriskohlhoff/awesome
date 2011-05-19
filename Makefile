@@ -25,11 +25,11 @@ else
 	OPTIM_CXXFLAGS = -O$(OPTIM_LEVEL)
 endif
 
-CXXFLAGS = -Wall -Wextra -g $(OPTIM_CXXFLAGS) -I$(BOOST_ROOT) -DBOOST_ASIO_ENABLE_HANDLER_TRACKING
+CXXFLAGS = -std=c++0x -Wall -Wextra -g $(OPTIM_CXXFLAGS) -I$(BOOST_ROOT) -DBOOST_ASIO_ENABLE_HANDLER_TRACKING
 
 LD = g++-4.6
 
-LDFLAGS =
+LDFLAGS = -std=c++0x
 
 LIBS = $(BOOST_ROOT)/stage/lib/libboost_system.a
 

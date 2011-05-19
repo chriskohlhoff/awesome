@@ -13,7 +13,7 @@
 
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/write.hpp>
-#include <boost/utility/addressof.hpp>
+#include <memory>
 
 namespace awesome {
 
@@ -54,7 +54,7 @@ void* asio_handler_allocate(std::size_t n,
     transfer_op<Stream1, Stream2, Handler>* op)
 {
   using boost::asio::asio_handler_allocate;
-  return asio_handler_allocate(n, boost::addressof(op->handler));
+  return asio_handler_allocate(n, std::addressof(op->handler));
 }
 
 template <class Stream1, class Stream2, class Handler>
@@ -62,7 +62,7 @@ void asio_handler_deallocate(void* p, std::size_t n,
     transfer_op<Stream1, Stream2, Handler>* op)
 {
   using boost::asio::asio_handler_deallocate;
-  return asio_handler_deallocate(p, n, boost::addressof(op->handler));
+  return asio_handler_deallocate(p, n, std::addressof(op->handler));
 }
 
 template <class Function, class Stream1, class Stream2, class Handler>
@@ -70,7 +70,7 @@ void asio_handler_invoke(const Function& f,
     transfer_op<Stream1, Stream2, Handler>* op)
 {
   using boost::asio::asio_handler_invoke;
-  return asio_handler_invoke(f, boost::addressof(op->handler));
+  return asio_handler_invoke(f, std::addressof(op->handler));
 }
 
 template <class Stream1, class Stream2, class Handler>

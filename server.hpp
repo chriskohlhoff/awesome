@@ -12,7 +12,6 @@
 #define AWESOME_SERVER_HPP
 
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/noncopyable.hpp>
 #include <string>
 #include "connection.hpp"
 
@@ -22,9 +21,11 @@ using boost::asio::ip::tcp;
 
 // The top-level class of the proxy.
 class server
-  : private boost::noncopyable
 {
 public:
+  server(const server&) = delete;
+  server& operator=(const server&) = delete;
+
   // Construct the server to listen on the specified port.
   server(const std::string& listen_address, const std::string& listen_port,
       const std::string& target_address, const std::string& target_port);

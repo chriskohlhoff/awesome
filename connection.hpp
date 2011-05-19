@@ -11,12 +11,10 @@
 #ifndef AWESOME_CONNECTION_HPP
 #define AWESOME_CONNECTION_HPP
 
-#include <boost/array.hpp>
+#include <array>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
+#include <memory>
 
 namespace awesome {
 
@@ -24,10 +22,12 @@ using boost::asio::ip::tcp;
 
 // Represents a single connection from a client.
 class connection
-  : public boost::enable_shared_from_this<connection>,
-    private boost::noncopyable
+  : public std::enable_shared_from_this<connection>
 {
 public:
+  connection(const connection&) = delete;
+  connection& operator=(const connection&) = delete;
+
   // Construct a connection with the given io_service.
   explicit connection(boost::asio::io_service& io_service);
 
@@ -54,16 +54,16 @@ private:
   tcp::socket down_socket_;
 
   // Buffer for data to be forwarded to the client.
-  boost::array<unsigned char, 1024> down_buffer_;
+  std::array<unsigned char, 1024> down_buffer_;
 
   // The socket used for communicating with the server.
   tcp::socket up_socket_;
 
   // Buffer for data received from the client.
-  boost::array<unsigned char, 1024> up_buffer_;
+  std::array<unsigned char, 1024> up_buffer_;
 };
 
-typedef boost::shared_ptr<connection> connection_ptr;
+typedef std::shared_ptr<connection> connection_ptr;
 
 } // namespace awesome
 
