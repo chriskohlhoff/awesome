@@ -9,8 +9,11 @@
 //
 
 #include "server.hpp"
+#include <functional>
 
 namespace awesome {
+
+using std::placeholders::_1;
 
 server::server(
     const std::string& listen_address, const std::string& listen_port,
@@ -25,22 +28,24 @@ server::server(
 
 void server::run()
 {
-  accept();
+  start_accept();
   io_service_.run();
 }
 
-void server::accept()
+void server::start_accept()
 {
   acceptor_.async_accept(down_socket_,
-      [&](const boost::system::error_code& ec)
-      {
-        if (!ec)
-        {
-          std::make_shared<connection>(std::move(down_socket_))->start(up_endpoint_);
-        }
+      std::bind(&server::handle_accept, this, _1));
+}
 
-        accept();
-      });
+void server::handle_accept(const boost::system::error_code& ec)
+{
+  if (!ec)
+  {
+    std::make_shared<connection>(std::move(down_socket_))->start(up_endpoint_);
+  }
+
+  start_accept();
 }
 
 } // namespace awesome

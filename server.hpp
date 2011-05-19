@@ -34,8 +34,11 @@ public:
   void run();
 
 private:
-  // Perform an asynchronous accept operation.
-  void accept();
+  // Initiate an asynchronous accept operation.
+  void start_accept();
+
+  // Handle completion of an asynchronous accept operation.
+  void handle_accept(const boost::system::error_code& ec);
 
   // The io_service used to perform asynchronous operations.
   boost::asio::io_service io_service_;

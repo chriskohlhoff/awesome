@@ -41,6 +41,12 @@ private:
   // Determine whether the connection has been stopped.
   bool is_stopped() const;
 
+  // Handle completion of connection to the server.
+  void handle_connect(const boost::system::error_code& ec);
+
+  // Handle completion of a transfer operation. Called only on error.
+  void handle_transfer();
+
   // The socket used for communicating with the client.
   tcp::socket down_socket_;
 

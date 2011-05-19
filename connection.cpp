@@ -9,10 +9,13 @@
 //
 
 #include "connection.hpp"
+#include <functional>
 #include <iostream>
 #include "transfer.hpp"
 
 namespace awesome {
+
+using std::placeholders::_1;
 
 connection::connection(tcp::socket&& down_socket)
   : down_socket_(std::move(down_socket)),
@@ -24,38 +27,8 @@ void connection::start(const tcp::endpoint& up_endpoint)
 {
   std::cout << "connection::start()" << std::endl;
 
-  connection_ptr this_ptr = shared_from_this();
   up_socket_.async_connect(up_endpoint,
-      [this, this_ptr](const boost::system::error_code& ec)
-      {
-        if (!is_stopped())
-        {
-          if (!ec)
-          {
-            async_transfer(down_socket_, up_socket_, boost::asio::buffer(down_buffer_),
-                [this, this_ptr](const boost::system::error_code&)
-                {
-                  if (!is_stopped())
-                  {
-                    stop();
-                  }
-                });
-
-            async_transfer(up_socket_, down_socket_, boost::asio::buffer(down_buffer_),
-                [this, this_ptr](const boost::system::error_code&)
-                {
-                  if (!is_stopped())
-                  {
-                    stop();
-                  }
-                });
-          }
-          else
-          {
-            stop();
-          }
-        }
-      });
+      std::bind(&connection::handle_connect, shared_from_this(), _1));
 }
 
 void connection::stop()
@@ -70,6 +43,33 @@ void connection::stop()
 bool connection::is_stopped() const
 {
   return !down_socket_.is_open() && !up_socket_.is_open();
+}
+
+void connection::handle_connect(const boost::system::error_code& ec)
+{
+  if (!is_stopped())
+  {
+    if (!ec)
+    {
+      async_transfer(down_socket_, up_socket_, boost::asio::buffer(down_buffer_),
+          std::bind(&connection::handle_transfer, shared_from_this()));
+
+      async_transfer(up_socket_, down_socket_, boost::asio::buffer(up_buffer_),
+          std::bind(&connection::handle_transfer, shared_from_this()));
+    }
+    else
+    {
+      stop();
+    }
+  }
+}
+
+void connection::handle_transfer()
+{
+  if (!is_stopped())
+  {
+    stop();
+  }
 }
 
 } // namespace awesome
