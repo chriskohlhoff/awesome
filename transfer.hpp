@@ -15,12 +15,14 @@
 #include <boost/asio/write.hpp>
 #include <memory>
 
+#include "yield.hpp"
+
 namespace awesome {
 
 template <class Stream1, class Stream2, class Handler>
 struct transfer_op
 {
-  bool do_read;
+  coroutine coro;
   Stream1& stream1;
   Stream2& stream2;
   boost::asio::mutable_buffers_1 working_buffer;
@@ -28,22 +30,16 @@ struct transfer_op
 
   void operator()(const boost::system::error_code& ec, std::size_t length)
   {
-    if (!ec)
+    reenter (coro)
     {
-      if (do_read)
+      while (!ec)
       {
-        do_read = false;
-        stream1.async_read_some(working_buffer, *this);
-      }
-      else
-      {
-        do_read = true;
-        boost::asio::async_write(stream2,
+        yield stream1.async_read_some(working_buffer, *this);
+        if (ec) break;
+        yield boost::asio::async_write(stream2,
             boost::asio::buffer(working_buffer, length), *this);
       }
-    }
-    else
-    {
+
       handler(ec);
     }
   }
@@ -78,10 +74,12 @@ void async_transfer(Stream1& stream1, Stream2& stream2,
     boost::asio::mutable_buffers_1 working_buffer, Handler handler)
 {
   transfer_op<Stream1, Stream2, Handler>{
-    true, stream1, stream2, working_buffer, handler }(
+    coroutine(), stream1, stream2, working_buffer, handler }(
       boost::system::error_code(), 0);
 }
 
 } // namespace awesome
+
+#include "unyield.hpp"
 
 #endif // AWESOME_TRANSFER_HPP

@@ -54,6 +54,6 @@ depends:
 
 # DO NOT DELETE THIS LINE - make depend depends on it
 
-connection.o: connection.hpp transfer.hpp
-main.o: server.hpp connection.hpp
-server.o: server.hpp connection.hpp
+connection.o: connection.hpp coroutine.hpp transfer.hpp yield.hpp unyield.hpp
+main.o: server.hpp connection.hpp coroutine.hpp
+server.o: server.hpp connection.hpp coroutine.hpp yield.hpp unyield.hpp

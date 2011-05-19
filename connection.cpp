@@ -13,63 +13,53 @@
 #include <iostream>
 #include "transfer.hpp"
 
+#include "yield.hpp"
+
 namespace awesome {
 
-using std::placeholders::_1;
-
 connection::connection(tcp::socket&& down_socket)
-  : down_socket_(std::move(down_socket)),
-    up_socket_(down_socket_.get_io_service())
+  : down_socket_(std::make_shared<tcp::socket>(std::move(down_socket)))
 {
 }
 
-void connection::start(const tcp::endpoint& up_endpoint)
+void connection::operator()(boost::system::error_code ec,
+    const tcp::endpoint& up_endpoint)
 {
-  std::cout << "connection::start()" << std::endl;
-
-  up_socket_.async_connect(up_endpoint,
-      std::bind(&connection::handle_connect, shared_from_this(), _1));
-}
-
-void connection::stop()
-{
-  std::cout << "connection::stop()" << std::endl;
-
-  boost::system::error_code ec;
-  down_socket_.close(ec);
-  up_socket_.close(ec);
-}
-
-bool connection::is_stopped() const
-{
-  return !down_socket_.is_open() && !up_socket_.is_open();
-}
-
-void connection::handle_connect(const boost::system::error_code& ec)
-{
-  if (!is_stopped())
+  bool is_stopped = !down_socket_->is_open() && !up_socket_->is_open();
+  if (!is_stopped)
   {
-    if (!ec)
+    reenter (this)
     {
-      async_transfer(down_socket_, up_socket_, boost::asio::buffer(down_buffer_),
-          std::bind(&connection::handle_transfer, shared_from_this()));
+      std::cout << "connection::start()" << std::endl;
 
-      async_transfer(up_socket_, down_socket_, boost::asio::buffer(up_buffer_),
-          std::bind(&connection::handle_transfer, shared_from_this()));
-    }
-    else
-    {
-      stop();
-    }
-  }
-}
+      up_socket_ = std::make_shared<tcp::socket>(down_socket_->get_io_service());
+      yield up_socket_->async_connect(up_endpoint, *this);
+      if (!ec)
+      {
+        fork connection(*this)(boost::system::error_code());
 
-void connection::handle_transfer()
-{
-  if (!is_stopped())
-  {
-    stop();
+        buffer_ = std::make_shared<std::array<unsigned char, 1024>>();
+
+        if (is_child())
+        {
+          yield async_transfer(*up_socket_, *down_socket_,
+              boost::asio::buffer(*buffer_), *this);
+        }
+        else
+        {
+          yield async_transfer(*down_socket_, *up_socket_,
+              boost::asio::buffer(*buffer_), *this);
+        }
+      }
+
+      std::cout << "connection::stop()" << std::endl;
+
+      up_socket_->close(ec);
+      down_socket_->close(ec);
+    }
   }
 }
 
 } // namespace awesome
+
+#include "unyield.hpp"

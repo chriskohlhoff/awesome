@@ -11,9 +11,9 @@
 #include "server.hpp"
 #include <functional>
 
-namespace awesome {
+#include "yield.hpp"
 
-using std::placeholders::_1;
+namespace awesome {
 
 server::server(
     const std::string& listen_address, const std::string& listen_port,
@@ -28,24 +28,31 @@ server::server(
 
 void server::run()
 {
-  start_accept();
+  struct logic
+  {
+    coroutine coro;
+    server* this_;
+    void operator()(const boost::system::error_code& ec)
+    {
+      reenter (coro)
+      {
+        for (;;)
+        {
+          yield this_->acceptor_.async_accept(this_->down_socket_, *this);
+          if (!ec)
+          {
+            connection(std::move(this_->down_socket_))(
+                boost::system::error_code(), this_->up_endpoint_);
+          }
+        }
+      }
+    }
+  };
+
+  logic{coroutine(), this}(boost::system::error_code());
   io_service_.run();
 }
 
-void server::start_accept()
-{
-  acceptor_.async_accept(down_socket_,
-      std::bind(&server::handle_accept, this, _1));
-}
-
-void server::handle_accept(const boost::system::error_code& ec)
-{
-  if (!ec)
-  {
-    std::make_shared<connection>(std::move(down_socket_))->start(up_endpoint_);
-  }
-
-  start_accept();
-}
-
 } // namespace awesome
+
+#include "unyield.hpp"
